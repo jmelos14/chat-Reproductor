@@ -456,17 +456,28 @@ function reproducir() {
 function playYouTube(id) {
   const playerDiv = document.getElementById("player");
   
-  // Usamos un servicio de "pódcast" o proxy que convierte el video en audio
-  // Nota: Este es un ejemplo de estructura, necesitarías un link de stream
+  // Usamos un proxy de Invidious (existen muchos, como yewtu.be o invidious.snopyta.org)
+  // Estos servidores extraen el audio por ti.
+  const audioStreamUrl = `https://yewtu.be/latest_version?id=${id}&itag=140`;
+
   playerDiv.innerHTML = `
-    <div style="padding: 15px; text-align: center; background: #1f2c34; border-radius: 8px;">
-      <p style="color: #00a884;">🎵 Reproduciendo audio de YouTube</p>
-      <audio controls autoplay style="width: 100%;">
-        <source src="https://www.youtube.com/watch?v=${id}" type="video/mp4">
+    <div style="padding: 20px; text-align: center; background: #111b21; border-radius: 10px; border: 1px solid #00a884;">
+      <p style="color: #00a884; font-weight: bold; margin-bottom: 10px;">🎵 Modo Audio (Sin Bloqueos)</p>
+      
+      <audio id="audioPlayer" controls autoplay style="width: 100%;">
+        <source src="${audioStreamUrl}" type="audio/mp4">
         Tu navegador no soporta el audio directo.
       </audio>
+
+      <div style="margin-top: 10px; font-size: 11px; color: #8696a0;">
+        Si no carga, intenta con otro video o refresca.
+      </div>
     </div>
   `;
+
+  // Forzamos la carga
+  const audio = document.getElementById("audioPlayer");
+  audio.load();
 }
 
 
