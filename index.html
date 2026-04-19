@@ -415,23 +415,39 @@ setInterval(()=>{
 function reproducir() {
   const tipo = document.getElementById("tipo").value;
   let url = document.getElementById("link").value;
-  let nombreEmisora = "Música"; // Nombre por defecto
+  let nombreExtra = "Música"; // Nombre por defecto
 
   if (tipo === "radio") {
-    // CAMBIO CLAVE: Obtener la URL del select, no del input de texto
+    // Tomamos la URL del SELECT de emisoras, no del cuadro de texto
     const select = document.getElementById("radioSelect");
     url = select.value; 
-    nombreEmisora = select.options[select.selectedIndex].text;
+    nombreExtra = select.options[select.selectedIndex].text;
     
-    playRadio(url, nombreEmisora);
-  } else if (tipo === "youtube") {
-    playYouTube(url);
-  } else if (tipo === "spotify") {
+    playRadio(url, nombreExtra);
+  } 
+  else if (tipo === "youtube") {
+    // Fusionamos la limpieza de ID de YouTube para evitar errores de reproducción
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = url.match(regex);
+    
+    if (match && match[1]) {
+      url = match[1]; // Guardamos solo el ID (ej: Yn0d6qpzepU)
+      playYouTube(url);
+    } else {
+      alert("Por favor, pega un link de YouTube válido");
+      return;
+    }
+  } 
+  else if (tipo === "spotify") {
     playSpotify(url);
   }
 
-  // Ahora enviamos el objeto completo para que los demás reciban el nombre también
-  socket.emit("play-musica", { tipo, url, nombre: nombreEmisora });
+  // Enviamos el objeto fusionado: tipo, url (o id de youtube) y el nombre de la radio
+  socket.emit("play-musica", { 
+    tipo: tipo, 
+    url: url, 
+    nombre: nombreExtra 
+  });
 }
 
 
@@ -576,13 +592,14 @@ socket.on("play-musica", (data) => {
 });
 
 // cuando otro usuario pausa
-socket.on("play-musica", (data) => {
+
+  socket.on("play-musica", (data) => {
   if (data.tipo === "youtube") {
-    playYouTube(data.url);
+    playYouTube(data.url); 
+  } else if (data.tipo === "radio") {
+    playRadio(data.url, data.nombre);
   } else if (data.tipo === "spotify") {
     playSpotify(data.url);
-  } else if (data.tipo === "radio") { 
-    playRadio(data.url, data.nombre || "Emisora compartida");
   }
 });
 
