@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Chat SaaS</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#dadbd3;
+}
+
+/* CONTENEDOR */
+#app{
+display:flex;
+height:100vh;
+}
+
+/* SIDEBAR */
+#sidebar{
+width:30%;
+background:#111b21;
+color:white;
+display:flex;
+flex-direction:column;
+}
+
+#usuario-header{
+padding:15px;
+background:#202c33;
+font-weight:bold;
+}
+
+#usuarios{
+flex:1;
+overflow-y:auto;
+}
+
+.usuario{
+padding:15px;
+border-bottom:1px solid #2a3942;
+cursor:pointer;
+}
+
+.usuario:hover{
+background:#2a3942;
+}
+
+.activo{
+background:#2a3942;
+}
+
+/* CHAT */
+#chat{
+flex:1;
+display:flex;
+flex-direction:column;
+background:#efeae2;
+}
+
+/* HEADER */
+#chat-header{
+background:#202c33;
+color:white;
+padding:15px;
+}
+
+/* MENSAJES */
+#mensajes{
+flex:1;
+padding:15px;
+overflow-y:auto;
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+.mensaje{
+max-width:60%;
+padding:10px;
+border-radius:10px;
+}
+
+.mio{
+background:#d9fdd3;
+align-self:flex-end;
+}
+
+.otro{
+background:white;
+align-self:flex-start;
+}
+
+/* INPUT */
+#input-area{
+display:flex;
+padding:10px;
+background:#202c33;
+}
+
+#mensaje{
+flex:1;
+padding:10px;
+border-radius:20px;
+border:none;
+outline:none;
+}
+
+button{
+  margin-left:5px;
+  padding:8px;
+  border:none;
+  background:#00a884;
+  color:white;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+/* LOGIN */
+#login{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:white;
+padding:20px;
+border-radius:10px;
+display:flex;
+flex-direction:column;
+gap:10px;
+}
+
+#music-player{
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 260px;
+  background: #1f2c34;
+  color: white;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  z-index: 9999;
+  font-size: 13px;
+
+  max-height: 500px; /* abierto */
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+/* 🔽 estado minimizado */
+#music-player.min{
+  max-height: 40px;
+}
+
+
+#music-player input,
+#music-player select{
+  width: 100%;
+  margin-bottom: 5px;
+  padding: 5px;
+  border-radius: 6px;
+  border: none;
+}
+
+#player iframe,
+#player audio{
+  width: 100%;
+  height: 80px;
+}
+
+#mensajes {
+  padding-bottom: 80px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+<h3>Login</h3>
+<input id="user" placeholder="Usuario">
+<input id="pass" type="password" placeholder="Contraseña">
+<button onclick="login()">Entrar</button>
+<button onclick="registro()">Registrarse</button>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:flex;">
+  <div id="music-player">
+
+  <div style="display:flex; justify-content:space-between;">
+    <span>🎧 Player</span>
+    <button id="btnMin" onclick="togglePlayer()">➖</button>
+  </div>
+
+  <select id="tipo">
+    <option value="youtube">YouTube</option>
+    <option value="spotify">Spotify</option>
+    <option value="radio">Radio</option>
+  </select>
+
+  <input id="link" placeholder="Pega link">
+  <input id="titulo" placeholder="Nombre" style="display:none;">
+
+<div id="radioContainer" style="display:none;">
+  <select id="radioSelect">
+    <option value="https://playerservices.streamtheworld.com/api/livestream-redirect/LA_MEGA.mp3">
+      La Mega
+    </option>
+    <option value="https://playerservices.streamtheworld.com/api/livestream-redirect/CARACOL_RADIO.mp3">
+      Caracol Radio
+    </option>
+  </select>
+</div>
+
+  <button onclick="reproducir()">▶️</button>
+
+  <div>
+    <button onclick="playLocal()">▶️</button>
+    <button onclick="pauseLocal()">⏸️</button>
+  </div>
+
+  <div id="volumenContainer" style="display:none;">
+    <input type="range" id="volumen" min="0" max="1" step="0.01">
+  </div>
+
+  <div id="player"></div>
+
+</div>
+
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="usuario-header">👤 <span id="usuario"></span></div>
+  <div id="usuarios"></div>
+</div>
+
+<!-- CHAT -->
+<div id="chat">
+  <div id="chat-header">Selecciona un chat</div>
+  <div id="mensajes"></div>
+
+  <div id="input-area">
+    <input id="mensaje" placeholder="Escribe un mensaje">
+    <button onclick="enviar()">➤</button>
+  </div>
+</div>
+
+
+
+</div>
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const socket = io();
+const API = "";
+let usuarioActual = "";
+let chatActual = null;
+
+// LOGIN
+async function login(){
+  const username = user.value;
+  const password = pass.value;
+
+  const res = await fetch("/login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({username, password})
+  });
+
+  if(res.ok){
+    usuarioActual = username;
+
+    document.getElementById("usuario").innerText = username;
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="flex";
+
+    cargarUsuarios();
+  } else {
+    alert("Error login");
+  }
+}
+
+// REGISTRO
+async function registro(){
+  const username = user.value;
+  const password = pass.value;
+
+  const res = await fetch("/registro",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({username, password})
+  });
+
+  if(res.ok){
+    alert("Usuario creado");
+  } else {
+    alert("Error");
+  }
+}
+
+// CARGAR USUARIOS (SIDEBAR)
+async function cargarUsuarios(){
+  const res = await fetch("/usuarios");
+  const data = await res.json();
+
+  const cont = document.getElementById("usuarios");
+  cont.innerHTML="";
+
+  // GLOBAL
+  cont.innerHTML += `
+    <div class="usuario activo" onclick="abrirChat(null,this)">
+      🌍 Chat global
+    </div>
+  `;
+
+  data.forEach(u=>{
+    if(u.username !== usuarioActual){
+      cont.innerHTML += `
+        <div class="usuario" onclick="abrirChat('${u.username}',this)">
+          👤 ${u.username}
+        </div>
+      `;
+    }
+  });
+}
+
+// ABRIR CHAT
+function abrirChat(usuario, elemento){
+
+  chatActual = usuario;
+
+  document.querySelectorAll(".usuario").forEach(u=>u.classList.remove("activo"));
+  elemento.classList.add("activo");
+
+  document.getElementById("chat-header").innerText =
+    usuario ? "Chat con " + usuario : "Chat global";
+
+  cargarMensajes();
+}
+
+// CARGAR MENSAJES
+async function cargarMensajes(){
+
+  const res = await fetch("/mensajes/" + usuarioActual);
+  const data = await res.json();
+
+  const cont = document.getElementById("mensajes");
+  cont.innerHTML="";
+
+  data.forEach(m=>{
+
+    if(chatActual){
+      if(!(
+        (m.de === usuarioActual && m.para === chatActual) ||
+        (m.de === chatActual && m.para === usuarioActual)
+      )) return;
+    } else {
+      if(m.para !== null) return;
+    }
+
+    const tipo = m.de === usuarioActual ? "mio" : "otro";
+
+    cont.innerHTML += `
+      <div class="mensaje ${tipo}">
+        <b>${m.de}</b><br>
+        ${m.mensaje}
+      </div>
+    `;
+  });
+
+  cont.scrollTop = cont.scrollHeight;
+}
+
+// ENVIAR
+async function enviar(){
+
+  const mensaje = document.getElementById("mensaje").value;
+
+  await fetch("/mensaje",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      de: usuarioActual,
+      para: chatActual,
+      mensaje
+    })
+  });
+
+  document.getElementById("mensaje").value="";
+  cargarMensajes();
+}
+
+// ENTER
+document.getElementById("mensaje").addEventListener("keypress", e=>{
+  if(e.key==="Enter") enviar();
+});
+
+// REFRESH
+setInterval(()=>{
+  if(usuarioActual && chatActual !== undefined){
+    cargarMensajes();
+  }
+},1000);
+
+//Reproductor de musica
+
+function reproducir() {
+  const tipo = document.getElementById("tipo").value;
+  let url = document.getElementById("link").value;
+
+  if (tipo === "radio") {
+    const nombreEmisora = document.getElementById("radioSelect").options[document.getElementById("radioSelect").selectedIndex].text;
+    
+    playRadio(url, nombreEmisora);
+  } else if (tipo === "youtube") {
+    playYouTube(url);
+  } else if (tipo === "spotify") {
+    playSpotify(url);
+  }
+
+  socket.emit("play-musica", { tipo, url });
+}
+
+
+
+//Youtube
+function playYouTube(url){
+  let id = "";
+  if(url.includes("watch?v=")) id = url.split("watch?v=")[1].split("&")[0];
+  else if(url.includes("youtu.be/")) id = url.split("youtu.be/")[1].split("?")[0];
+
+  document.getElementById("player").innerHTML = `
+    <iframe width="100%" height="200" src="https://www.youtube.com/embed/${id}" frameborder="0" allow="autoplay"></iframe>
+  `;
+}
+
+
+//Spotify
+function playSpotify(url) {
+  let id = "";
+  // Extrae el ID del link
+  if(url.includes("/playlist/")) id = "playlist/" + url.split("/playlist/")[1].split("?")[0];
+  else if(url.includes("/album/")) id = "album/" + url.split("/album/")[1].split("?")[0];
+  else if(url.includes("/track/")) id = "track/" + url.split("/track/")[1].split("?")[0];
+
+  // Cambiamos la URL a la oficial de Spotify Embed
+  document.getElementById("player").innerHTML = `
+    <iframe style="border-radius:12px" 
+      src="https://open.spotify.com/embed/${id}" 
+      width="100%" height="152" frameBorder="0" allowfullscreen="" 
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy">
+    </iframe>`;
+}
+
+
+//Radio
+function playRadio(url, nombre = "Radio en vivo") {
+  document.getElementById("player").innerHTML = `
+    <div style="padding: 10px; text-align: center; background: #2a3942; border-radius: 8px; margin-top: 10px;">
+      <p style="margin: 0 0 10px 0; color: #00a884;">📻 <b>Escuchando:</b> ${nombre}</p>
+      <audio id="radioAudio" style="width:100%" controls autoplay>
+        <source src="${url}" type="audio/mpeg">
+      </audio>
+    </div>
+  `;
+}
+
+
+//Controles
+function playLocal(){
+  const audio = document.querySelector("#player audio");
+  if(audio) audio.play();
+}
+
+function pauseLocal(){
+  const audio = document.querySelector("#player audio");
+  if(audio) audio.pause();
+
+  socket.emit("pause-musica");
+}
+
+
+
+//Mostrar radios {
+ window.onload = () => {
+  document.getElementById("tipo").addEventListener("change", () => {
+
+    const tipo = document.getElementById("tipo").value;
+
+    const radioDiv = document.getElementById("radioContainer");
+    const inputLink = document.getElementById("link");
+    const tituloInput = document.getElementById("titulo");
+    const volumenDiv = document.getElementById("volumenContainer");
+
+    if(tipo === "radio"){
+      radioDiv.style.display = "block";
+      inputLink.style.display = "none";
+      tituloInput.style.display = "none";
+      volumenDiv.style.display = "block";
+    }
+    else if(tipo === "youtube"){
+      radioDiv.style.display = "none";
+      inputLink.style.display = "block";
+      tituloInput.style.display = "block";
+      volumenDiv.style.display = "none";
+    }
+    else{
+      radioDiv.style.display = "none";
+      inputLink.style.display = "block";
+      tituloInput.style.display = "none";
+      volumenDiv.style.display = "none";
+    }
+
+  });
+
+  // activar estado inicial
+  document.getElementById("tipo").dispatchEvent(new Event("change"));
+};
+
+
+//Volumen
+document.getElementById("volumen").addEventListener("input", () => {
+  const audio = document.querySelector("#player audio");
+  if(audio){
+    audio.volume = document.getElementById("volumen").value;
+  }
+});
+
+function togglePlayer(){
+  const player = document.getElementById("music-player");
+  const btn = document.getElementById("btnMin");
+
+  player.classList.toggle("min");
+
+  if(player.classList.contains("min")){
+    btn.innerText = "➕";
+  } else {
+    btn.innerText = "➖";
+  }
+}
+
+// cuando otro usuario reproduce
+socket.on("play-musica", (data) => {
+
+  if(data.tipo === "youtube") playYouTube(data.url);
+  if(data.tipo === "spotify") playSpotify(data.url);
+  if(data.tipo === "radio") playRadio();
+
+});
+
+// cuando otro usuario pausa
+socket.on("play-musica", (data) => {
+  if (data.tipo === "youtube") {
+    playYouTube(data.url);
+  } else if (data.tipo === "spotify") {
+    playSpotify(data.url);
+  } else if (data.tipo === "radio") { 
+    playRadio(data.url, "Emisora compartida");
+  }
+});
+
+</script>
+
+</body>
+</html>
