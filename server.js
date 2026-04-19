@@ -16,10 +16,10 @@ app.use(express.static(path.join(__dirname)));
 
 
 // 🔥 CONEXIÓN A MONGODB
-const mongoURI = process.env.MONGODB_URI || "mongodb://arquitecturaenlanube26_db_user:Admin123456@ac-0off1lc-shard-00-00.kzcnojw.mongodb.net:27017/chat?ssl=true&authSource=admin";
+const mongoURI = process.env.MONGODB_URI || "mongodb://tu_url_local";
 mongoose.connect(mongoURI)
-  .then(() => console.log("✅ Conectado a MongoDB"))
-  .catch(err => console.log("❌ Error de conexión:", err));
+    .then(() => console.log("✅ Conectado a MongoDB"))
+    .catch(err => console.log("❌ Error de conexión:", err));
 
 // 📦 MODELOS
 
