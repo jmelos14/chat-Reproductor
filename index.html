@@ -453,25 +453,20 @@ function reproducir() {
 
 
 //Youtube
-function playYouTube(url) {
-  // Si lo que recibimos es una URL completa, la convertimos a formato embed
-  let videoId = url;
-  if (url.includes("v=")) {
-      videoId = url.split("v=")[1].split("&")[0];
-  } else if (url.includes("youtu.be/")) {
-      videoId = url.split("youtu.be/")[1].split("?")[0];
-  }
-
+function playYouTube(id) {
   const playerDiv = document.getElementById("player");
+  
+  // Usamos un servicio de "pódcast" o proxy que convierte el video en audio
+  // Nota: Este es un ejemplo de estructura, necesitarías un link de stream
   playerDiv.innerHTML = `
-    <iframe 
-      width="100%" 
-      height="250" 
-      src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1" 
-      frameborder="0" 
-      allow="autoplay; encrypted-media" 
-      allowfullscreen>
-    </iframe>`;
+    <div style="padding: 15px; text-align: center; background: #1f2c34; border-radius: 8px;">
+      <p style="color: #00a884;">🎵 Reproduciendo audio de YouTube</p>
+      <audio controls autoplay style="width: 100%;">
+        <source src="https://www.youtube.com/watch?v=${id}" type="video/mp4">
+        Tu navegador no soporta el audio directo.
+      </audio>
+    </div>
+  `;
 }
 
 
