@@ -413,84 +413,62 @@ setInterval(()=>{
 //Reproductor de musica
 
 function reproducir() {
-  const tipo = document.getElementById("tipo").value;
-  let url = document.getElementById("link").value;
-  let nombreExtra = "Música"; // Nombre por defecto
+  try {
+    const tipo = document.getElementById("tipo").value;
+    const linkInput = document.getElementById("link");
+    const radioSelect = document.getElementById("radioSelect");
+    
+    let url = linkInput ? linkInput.value : "";
+    let nombreExtra = "Música";
 
-  if (tipo === "radio") {
-    // Tomamos la URL del SELECT de emisoras, no del cuadro de texto
-    const select = document.getElementById("radioSelect");
-    url = select.value; 
-    nombreExtra = select.options[select.selectedIndex].text;
-    
-    playRadio(url, nombreExtra);
-  } 
-  else if (tipo === "youtube") {
-    // Fusionamos la limpieza de ID de YouTube para evitar errores de reproducción
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
-    const match = url.match(regex);
-    
-    if (match && match[1]) {
-      url = match[1]; // Guardamos solo el ID (ej: Yn0d6qpzepU)
-      playYouTube(url);
-    } else {
-      alert("Por favor, pega un link de YouTube válido");
-      return;
+    if (tipo === "radio") {
+      // Si es radio, usamos el valor del select
+      url = radioSelect.value;
+      nombreExtra = radioSelect.options[radioSelect.selectedIndex].text;
+      playRadio(url, nombreExtra);
+    } 
+    else if (tipo === "youtube") {
+      // Limpiamos el link de YouTube para sacar el ID
+      const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+      const match = url.match(regex);
+      
+      if (match && match[1]) {
+        url = match[1];
+        playYouTube(url);
+      } else {
+        alert("Por favor, pega un link de YouTube válido.");
+        return;
+      }
+    } 
+    else if (tipo === "spotify") {
+      playSpotify(url);
     }
-  } 
-  else if (tipo === "spotify") {
-    playSpotify(url);
+
+    // Enviamos al socket
+    socket.emit("play-musica", { tipo: tipo, url: url, nombre: nombreExtra });
+    
+  } catch (error) {
+    console.error("Error en reproducir:", error);
   }
-
-  // Enviamos el objeto fusionado: tipo, url (o id de youtube) y el nombre de la radio
-  socket.emit("play-musica", { 
-    tipo: tipo, 
-    url: url, 
-    nombre: nombreExtra 
-  });
 }
-
 
 
 //Youtube
 function playYouTube(id) {
   const playerDiv = document.getElementById("player");
-  
-  // Probaremos con un proxy diferente que es más rápido para streams
-  // El parámetro &quality=dash ayuda a que cargue más rápido en navegadores
-  const audioStreamUrl = `https://invidious.sethforprivacy.com/latest_version?id=${id}&itag=140`;
+  // Usamos el servidor de Invidious 'lunar.icu' que suele tener buen ancho de banda
+  const audioUrl = `https://invidious.lunar.icu/latest_version?id=${id}&itag=140`;
 
   playerDiv.innerHTML = `
     <div style="padding: 15px; text-align: center; background: #111b21; border-radius: 10px; border: 1px solid #00a884; margin-top:10px;">
-      <p style="color: #00a884; font-size: 13px; margin-bottom: 8px;">🎵 Modo Audio Activo</p>
-      
+      <p style="color: #00a884; font-size: 13px; margin-bottom: 8px;">🎵 Reproduciendo Audio</p>
       <audio id="audioElement" controls autoplay style="width: 100%;">
-        <source src="${audioStreamUrl}" type="audio/mp4">
-        Tu navegador no soporta el audio.
+        <source src="${audioUrl}" type="audio/mp4">
       </audio>
-
-      <div style="margin-top: 8px;">
-         <button onclick="intentarOtroProxy('${id}')" style="background:none; border:1px solid #8696a0; color:#8696a0; font-size:10px; cursor:pointer; border-radius:4px;">¿No carga? Clic aquí</button>
-      </div>
     </div>
   `;
 
   const audio = document.getElementById("audioElement");
-  audio.load();
-  audio.play().catch(e => console.log("Esperando clic para sonar..."));
-}
-
-// Función de respaldo por si el primer servidor falla
-function intentarOtroProxy(id) {
-    const audio = document.getElementById("audioElement");
-    // Cambiamos a otro servidor proxy (yewtu.be)
-    audio.src = `https://yewtu.be/latest_version?id=${id}&itag=140`;
-    audio.load();
-    audio.play();
-}
-
-  // Forzamos la carga
-  const audio = document.getElementById("audioPlayer");
   audio.load();
 }
 
