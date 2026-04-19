@@ -415,9 +415,13 @@ setInterval(()=>{
 function reproducir() {
   const tipo = document.getElementById("tipo").value;
   let url = document.getElementById("link").value;
+  let nombreEmisora = "Música"; // Nombre por defecto
 
   if (tipo === "radio") {
-    const nombreEmisora = document.getElementById("radioSelect").options[document.getElementById("radioSelect").selectedIndex].text;
+    // CAMBIO CLAVE: Obtener la URL del select, no del input de texto
+    const select = document.getElementById("radioSelect");
+    url = select.value; 
+    nombreEmisora = select.options[select.selectedIndex].text;
     
     playRadio(url, nombreEmisora);
   } else if (tipo === "youtube") {
@@ -426,7 +430,8 @@ function reproducir() {
     playSpotify(url);
   }
 
-  socket.emit("play-musica", { tipo, url });
+  // Ahora enviamos el objeto completo para que los demás reciban el nombre también
+  socket.emit("play-musica", { tipo, url, nombre: nombreEmisora });
 }
 
 
