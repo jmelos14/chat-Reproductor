@@ -456,24 +456,38 @@ function reproducir() {
 function playYouTube(id) {
   const playerDiv = document.getElementById("player");
   
-  // Usamos un proxy de Invidious (existen muchos, como yewtu.be o invidious.snopyta.org)
-  // Estos servidores extraen el audio por ti.
-  const audioStreamUrl = `https://yewtu.be/latest_version?id=${id}&itag=140`;
+  // Probaremos con un proxy diferente que es más rápido para streams
+  // El parámetro &quality=dash ayuda a que cargue más rápido en navegadores
+  const audioStreamUrl = `https://invidious.sethforprivacy.com/latest_version?id=${id}&itag=140`;
 
   playerDiv.innerHTML = `
-    <div style="padding: 20px; text-align: center; background: #111b21; border-radius: 10px; border: 1px solid #00a884;">
-      <p style="color: #00a884; font-weight: bold; margin-bottom: 10px;">🎵 Modo Audio (Sin Bloqueos)</p>
+    <div style="padding: 15px; text-align: center; background: #111b21; border-radius: 10px; border: 1px solid #00a884; margin-top:10px;">
+      <p style="color: #00a884; font-size: 13px; margin-bottom: 8px;">🎵 Modo Audio Activo</p>
       
-      <audio id="audioPlayer" controls autoplay style="width: 100%;">
+      <audio id="audioElement" controls autoplay style="width: 100%;">
         <source src="${audioStreamUrl}" type="audio/mp4">
-        Tu navegador no soporta el audio directo.
+        Tu navegador no soporta el audio.
       </audio>
 
-      <div style="margin-top: 10px; font-size: 11px; color: #8696a0;">
-        Si no carga, intenta con otro video o refresca.
+      <div style="margin-top: 8px;">
+         <button onclick="intentarOtroProxy('${id}')" style="background:none; border:1px solid #8696a0; color:#8696a0; font-size:10px; cursor:pointer; border-radius:4px;">¿No carga? Clic aquí</button>
       </div>
     </div>
   `;
+
+  const audio = document.getElementById("audioElement");
+  audio.load();
+  audio.play().catch(e => console.log("Esperando clic para sonar..."));
+}
+
+// Función de respaldo por si el primer servidor falla
+function intentarOtroProxy(id) {
+    const audio = document.getElementById("audioElement");
+    // Cambiamos a otro servidor proxy (yewtu.be)
+    audio.src = `https://yewtu.be/latest_version?id=${id}&itag=140`;
+    audio.load();
+    audio.play();
+}
 
   // Forzamos la carga
   const audio = document.getElementById("audioPlayer");
