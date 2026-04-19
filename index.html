@@ -463,14 +463,28 @@ function playSpotify(url) {
 
 //Radio
 function playRadio(url, nombre = "Radio en vivo") {
-  document.getElementById("player").innerHTML = `
+  const container = document.getElementById("player");
+  
+  
+  container.innerHTML = `
     <div style="padding: 10px; text-align: center; background: #2a3942; border-radius: 8px; margin-top: 10px;">
       <p style="margin: 0 0 10px 0; color: #00a884;">📻 <b>Escuchando:</b> ${nombre}</p>
-      <audio id="radioAudio" style="width:100%" controls autoplay>
+      <audio id="radioAudio" style="width:100%" controls autoplay crossorigin="anonymous">
         <source src="${url}" type="audio/mpeg">
+        Tu navegador no soporta este audio.
       </audio>
     </div>
   `;
+
+  const audio = document.getElementById("radioAudio");
+
+  
+  audio.load();
+
+  
+  audio.play().catch(error => {
+    console.log("El navegador bloqueó el audio automático. Haz clic en el reproductor.");
+  });
 }
 
 
