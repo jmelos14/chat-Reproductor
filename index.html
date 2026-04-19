@@ -582,7 +582,7 @@ socket.on("play-musica", (data) => {
   } else if (data.tipo === "spotify") {
     playSpotify(data.url);
   } else if (data.tipo === "radio") { 
-    playRadio(data.url, "Emisora compartida");
+    playRadio(data.url, data.nombre || "Emisora compartida");
   }
 });
 
