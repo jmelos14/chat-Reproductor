@@ -199,7 +199,7 @@ gap:10px;
   </div>
 
   <select id="tipo">
-    <option value="youtube">YouTube</option>
+    <option value="soundcloud">SoundCloud</option>
     <option value="spotify">Spotify</option>
     <option value="radio">Radio</option>
   </select>
@@ -422,21 +422,15 @@ function reproducir() {
     let nombreExtra = "Música";
 
     if (tipo === "radio") {
-      // Si es radio, usamos el valor del select
       url = radioSelect.value;
       nombreExtra = radioSelect.options[radioSelect.selectedIndex].text;
       playRadio(url, nombreExtra);
     } 
-    else if (tipo === "youtube") {
-      // Limpiamos el link de YouTube para sacar el ID
-      const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
-      const match = url.match(regex);
-      
-      if (match && match[1]) {
-        url = match[1];
-        playYouTube(url);
+    else if (tipo === "soundcloud") {
+      if (url.includes("soundcloud.com")) {
+        playSoundCloud(url);
       } else {
-        alert("Por favor, pega un link de YouTube válido.");
+        alert("Por favor, pega un link de SoundCloud válido.");
         return;
       }
     } 
@@ -444,7 +438,7 @@ function reproducir() {
       playSpotify(url);
     }
 
-    // Enviamos al socket
+    // Enviamos al socket para que todos escuchen
     socket.emit("play-musica", { tipo: tipo, url: url, nombre: nombreExtra });
     
   } catch (error) {
@@ -452,42 +446,21 @@ function reproducir() {
   }
 }
 
-
-//Youtube
-function playYouTube(id) {
+//SoundCloud
+function playSoundCloud(url) {
   const playerDiv = document.getElementById("player");
-  // Usamos el servidor de Invidious 'lunar.icu' que suele tener buen ancho de banda
-  const audioUrl = `https://invidious.lunar.icu/latest_version?id=${id}&itag=140`;
+  const encodedUrl = encodeURIComponent(url);
 
   playerDiv.innerHTML = `
-    <div style="padding: 15px; text-align: center; background: #111b21; border-radius: 10px; border: 1px solid #00a884; margin-top:10px;">
-      <p style="color: #00a884; font-size: 13px; margin-bottom: 8px;">🎵 Reproduciendo Audio</p>
-      <audio id="audioElement" controls autoplay style="width: 100%;">
-        <source src="${audioUrl}" type="audio/mp4">
-      </audio>
-    </div>
+    <iframe 
+      width="100%" 
+      height="166" 
+      scrolling="no" 
+      frameborder="no" 
+      allow="autoplay" 
+      src="https://w.soundcloud.com/player/?url=${encodedUrl}&color=%2300a884&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false">
+    </iframe>
   `;
-
-  const audio = document.getElementById("audioElement");
-  audio.load();
-}
-
-
-//Spotify
-function playSpotify(url) {
-  let id = "";
-  // Extrae el ID del link
-  if(url.includes("/playlist/")) id = "playlist/" + url.split("/playlist/")[1].split("?")[0];
-  else if(url.includes("/album/")) id = "album/" + url.split("/album/")[1].split("?")[0];
-  else if(url.includes("/track/")) id = "track/" + url.split("/track/")[1].split("?")[0];
-
-  // Cambiamos la URL a la oficial de Spotify Embed
-  document.getElementById("player").innerHTML = `
-    <iframe style="border-radius:12px" 
-      src="https://open.spotify.com/embed/${id}" 
-      width="100%" height="152" frameBorder="0" allowfullscreen="" 
-      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy">
-    </iframe>`;
 }
 
 
@@ -550,7 +523,8 @@ function pauseLocal(){
       tituloInput.style.display = "none";
       volumenDiv.style.display = "block";
     }
-    else if(tipo === "youtube"){
+    // Dentro de window.onload
+     else if(tipo === "soundcloud"){ 
       radioDiv.style.display = "none";
       inputLink.style.display = "block";
       tituloInput.style.display = "block";
@@ -600,11 +574,11 @@ socket.on("play-musica", (data) => {
 
 });
 
-// cuando otro usuario pausa
 
-  socket.on("play-musica", (data) => {
-  if (data.tipo === "youtube") {
-    playYouTube(data.url); 
+  // Cuando otro usuario reproduce algo
+socket.on("play-musica", (data) => {
+  if (data.tipo === "soundcloud") {
+    playSoundCloud(data.url);
   } else if (data.tipo === "radio") {
     playRadio(data.url, data.nombre);
   } else if (data.tipo === "spotify") {
